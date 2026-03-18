@@ -16,9 +16,30 @@ connectDB();
 
 const app = express();
 
+const envOrigins = [process.env.FRONTEND_URL, process.env.CORS_ORIGIN]
+  .filter(Boolean)
+  .flatMap((value) => value.split(',').map((origin) => origin.trim()))
+  .filter(Boolean);
+
+const allowedOrigins = new Set([
+  ...envOrigins,
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:3000',
+  'https://frontend-auctra.vercel.app'
+]);
+
+const vercelPreviewRegex = /^https:\/\/frontend-auctra-[a-z0-9-]+\.vercel\.app$/i;
+
 // Security Middleware
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5174',
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.has(origin) || vercelPreviewRegex.test(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error(`CORS blocked for origin: ${origin}`));
+    },
     credentials: true
 }));
 app.use(helmet());
